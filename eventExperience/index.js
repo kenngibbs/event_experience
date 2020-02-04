@@ -5,20 +5,29 @@ const mongoose = require('mongoose');
 var path = require('path');
 var NFC_UserCollection = require('./models/NFC_UserSchema');
 
-const connect = mongoose.connect('mongodb+srv://admin:tNYyDUiGUtL5ZFF38ctG@kgdb-guwq3.mongodb.net/eventExperience?retryWrites=true&w=majority',
-    {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    })
-    .then(
-        ()=> {
-            console.log("Successfully connected to the database.");
-        },
-        err => {
-            console.log("ERROR connecting to the database.");
-            throw err;
-        }
-    );
+// const connect = mongoose.connect('mongodb+srv://admin:tNYyDUiGUtL5ZFF38ctG@kgdb-guwq3.mongodb.net/eventExperience?retryWrites=true&w=majority',
+//     {
+//         useNewUrlParser: true,
+//         // useUnifiedTopology: true,
+//     })
+//     .then(
+//         ()=> {
+//             console.log("Successfully connected to the database.");
+//         },
+//         err => {
+//             console.log("ERROR connecting to the database.");
+//             throw err;
+//         }
+//     );
+
+const MongoClient = require('mongodb').MongoClient;
+const uri = "mongodb+srv://admin:tNYyDUiGUtL5ZFF38ctG@kgdb-guwq3.mongodb.net/eventExperience?retryWrites=true&w=majority";
+const client = new MongoClient(uri, { useNewUrlParser: true });
+client.connect(err => {
+  const collection = client.db("test").collection("devices");
+  // perform actions on the collection object
+  // client.close();
+});
 
 // connect.once('open', function() {
 //   console.log("MongoDB database connection established successfully");
@@ -50,6 +59,17 @@ app.post('/', (req, res) => {
 
 io.on('connection', function(socket){
   console.log('a user connected');
+
+  // io.emit('add_nfc_user',[{"username":"username1", "picture":"picture1"}, {"username":"username2", "picture":"picture2"}, {"username":"username3", "picture":"picture3"}]);
+
+  NFC_UserCollection.find({}, 
+    (error, results)=>
+      {
+        console.log("All user results");
+        console.log(results);
+        error?console.log(error):io.emit('add_nfc_user',[{"username":"username1", "picture":"picture1"}, {"username":"username2", "picture":"picture2"}, {"username":"username3", "picture":"picture3"}]);
+      }
+  );
   
   var empty_NFC_User = new NFC_UserCollection();
 
@@ -57,7 +77,7 @@ io.on('connection', function(socket){
   socket.on('add_nfc_user', function(msg){
     console.log('message: ' + msg);
 
-    // Each 
+    // Send to each client on network
     NFC_UserCollection.findOne({username: msg},
       (errors, results) => {
         if (errors){
@@ -74,12 +94,10 @@ io.on('connection', function(socket){
               (error, results)=>
                 {
                   error?console.log(error):console.log(results);
-                });
+            });
           }
         }
-  })
-
-    // io.emit('nfc_user', "message: " + msg);
+    })
   });
 });
 
